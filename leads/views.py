@@ -1,44 +1,65 @@
+from django.core.mail import send_mail
 from django.shortcuts import render, redirect, reverse
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import generic
 from .models import Lead, Agent
-from .forms import LeadForm, LeadModelForm
+from .forms import CustomUserCreationForm, LeadForm, LeadModelForm
 
 # CRUD+L - Create, Retrieve, Update and Delete + List
+
+class SignupView(generic.CreateView):
+    template_name = "registration/signup.html"
+    form_class = CustomUserCreationForm
+
+    def get_success_url(self):
+        return reverse("login")
 
 class LandingPageView(generic.TemplateView):
     template_name = "landing.html"
 
-class LeadListView(generic.ListView):
+class LeadListView(LoginRequiredMixin, generic.ListView):
     template_name = "leads/lead_list.html"
     queryset = Lead.objects.all()
     # defaul call in html is {% for lead in object_list  %}
     # change with context_object_name = "leads" html will change {% for lead in leads  %}
     context_object_name = "leads"
 
-class LeadDetailView(generic.DetailView):
+class LeadDetailView(LoginRequiredMixin, generic.DetailView):
     template_name = "leads/lead_detail.html"
     queryset = Lead.objects.all()
     context_object_name = "lead"
 
-class LeadCreateView(generic.CreateView):
+class LeadCreateView(LoginRequiredMixin, generic.CreateView):
     template_name = "leads/lead_create.html"
     form_class = LeadModelForm
 
     def get_success_url(self):
-        return reverse("leads:list")
-class LeadUpdateView(generic.UpdateView):
+        return reverse("leads:lead-list")
+
+    def form_valid(self, form):
+        # TODO send email
+        send_mail(
+            subject = "A lead has been created", 
+            message = "Go to the site to the new lead",
+            from_email = "test@test.com",
+            recipient_list = ["test@test.com"]
+        )
+        return super(LeadCreateView, self).form_valid(form)
+
+class LeadUpdateView(LoginRequiredMixin, generic.UpdateView):
     template_name = "leads/lead_update.html"
     queryset = Lead.objects.all()
     form_class = LeadModelForm
 
     def get_success_url(self):
-        return reverse("leads:list")
-class LeadDeleteView(generic.DeleteView):
+        return reverse("leads:lead-list")
+
+class LeadDeleteView(LoginRequiredMixin, generic.DeleteView):
     template_name = "leads/lead_delete.html"
     queryset = Lead.objects.all()
 
     def get_success_url(self):
-        return reverse("leads:list")
+        return reverse("leads:lead-list")
 
 
 # =======> Old version of LandingPageView, TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView <=======
